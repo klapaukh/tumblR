@@ -71,10 +71,10 @@ setup_tumblr_oauth = function(consumer_secret,
 getInfo<- function(blog){
     url="info"
     resp = doTumblrQuery(blog=blog, type=AUTH_API, url=url)
-    if(inherits(resp, "tumblR.Meta")) return(resp)
+    if(ifFailed(resp)) return(resp)
     resp <- resp$blog
-    resp$updated = as.POSIXct(resp$updated, origin=origin)
-    makeResponse(resp)  
+    resp <- parseBlog(resp) 
+    makeResponse(resp) 
     return(resp)
 }
 
@@ -140,24 +140,38 @@ getLikes <- function(blog,limit=20,offset=0){
 #' getPosts("staff.tumblr.com", filter="raw")
 #' getPosts("staff.tumblr.com", tag="NYFW")
 getPosts <- function(blog,type,id, tag, limit, offset,reblog_info, notes_info,filter){
-        url="posts"
+  url="posts"
         
-        query=list()
-        if(!missing(type)) query = c(query,type=type)
-        if(!missing(id)) query = c(query,id=id)
-        if(!missing(tag)) query = c(query,tag=tag)
-        if(!missing(limit)) query = c(query,limit=limit)
-        if(!missing(offset)) query = c(query,offset=offset)
-        if(!missing(reblog_info)) query = c(query,reblog_info=reblog_info)
-        if(!missing(notes_info)) query = c(query,notes_info=notes_info)
-        if(!missing(filter)) query = c(query,filter=filter)
+  query=list()
+  if(!missing(type)) query = c(query,type=type)
+  if(!missing(id)) query = c(query,id=id)
+  if(!missing(tag)) query = c(query,tag=tag)
+  if(!missing(limit)) query = c(query,limit=limit)
+  if(!missing(offset)) query = c(query,offset=offset)
+  if(!missing(reblog_info)) query = c(query,reblog_info=reblog_info)
+  if(!missing(notes_info)) query = c(query,notes_info=notes_info)
+  if(!missing(filter)) query = c(query,filter=filter)
 
-        doTumblrQuery(blog=blog, query=query, url=url, type=AUTH_API)
+  response = doTumblrQuery(blog=blog, query=query, url=url, type=AUTH_API)
+  
+  if(ifFailed(response)){
+    return(response)
+  }
+  response$response
+  blog = response$blog
+  count = response$total_posts
+  posts = response$posts
+
+  response = list(total_posts=count, blog=parseBlog(blog), posts=parsePosts(posts))
+  makeResponse(response)
+  return(response)
 }
 
 #' Get posts with a specific tag
 #'
 #' Gets posts with a given tag. featured_timestamp is not supported.  
+#' Return a list of posts. Posts do not all have the same structure
+#' making them slightly harder to coerce into a sensible structure.
 #'
 #' @param tag The tag to search for
 #' @param before Latest post to show [default: now] 
@@ -177,7 +191,12 @@ getTagged <-function(tag, before, limit, filter){
   if(!missing(filter)) query = c(query, filter=filter)
   if(!missing(limit)) query = c(query, limit=limit)
 
-  doTumblrQuery(query=query,url="tagged",type=AUTH_API)  
+  result = doTumblrQuery(query=query,url="tagged",type=AUTH_API)  
+  if(ifFailed(result)){
+    return(result)
+  }
+
+  return(result)
 }
 
 doTumblrQuery <- function(blog = NULL, user=NULL, query=list(), type=AUTH_NONE, url=NULL){
@@ -241,3 +260,15 @@ makeResponse <- function(x) {
   class(x) <- c(class(x), "tumblR.Response")
 }
 
+ifFailed <- function(x) {
+  return(inherits(x, "tumblR.Meta"))
+}
+
+parseBlog <- function(x){
+  x$updated = as.POSIXct(x$updated, origin=origin)
+  return(x)
+}
+
+parsePosts <- function(x){
+  return(x)
+}
