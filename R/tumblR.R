@@ -3,7 +3,7 @@ library(httr)
 library(ROAuth)
 
 #Need a library for dealing with the json requests
-
+library(jsonlite)
 
 #Tumblr doesn't always require authentican. In fact it has 3 levels
 #none: Lets you see avatars
@@ -25,6 +25,7 @@ tumblr = oauth_endpoint("request_token", "authorize", "access_token",
 
 tumblrApiBase = "api.tumblr.com/v2/"
 
+origin="1970-01-01"
 #' Store your API key for use with tumblR
 #'
 #' This function stores the api key for use with Tumblr API calls that
@@ -69,7 +70,12 @@ setup_tumblr_oauth = function(consumer_secret,
 #' getInfo("staff.tumblr.com")
 getInfo<- function(blog){
     url="info"
-    doTumblrQuery(blog=blog, type=AUTH_API, url=url)
+    resp = doTumblrQuery(blog=blog, type=AUTH_API, url=url)
+    if(inherits(resp, "tumblR.Meta")) return(resp)
+    resp <- resp$blog
+    resp$updated = as.POSIXct(resp$updated, origin=origin)
+    makeResponse(resp)  
+    return(resp)
 }
 
 #' Get an blogs avatar
@@ -207,7 +213,31 @@ doTumblrQuery <- function(blog = NULL, user=NULL, query=list(), type=AUTH_NONE, 
   }else{
     result = GET(url=request, query=query) 
   }
+  
+  if(result$status_code != 200){
+    warning(sprintf("Something went wrong with the request (%d: %s)", result$status_code, result$headers$statusmessage))
+    return(NULL)
+  }
+  
+  result = fromJSON(content(result,"text"),F)
+  
+  meta = result$meta
+  makeMeta(meta)
+  response = result$response
+  makeResponse(response)
 
-  return(result)
+  if(meta$status != 200){
+    return(meta)
+  }
+  
+  return(response)
+}
+
+makeMeta <- function(x) {
+  class(x) <- c(class(x), "tumblR.Meta")
+}
+
+makeResponse <- function(x) {
+  class(x) <- c(class(x), "tumblR.Response")
 }
 
