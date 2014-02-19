@@ -42,9 +42,11 @@ you:
 
 ## Examples
 
+```r
 source("tumblR.R")
+
 setup_tumblr_apikey("MyAPIKey")
 
 superBowlPosts <- getTagged("superbowl")
 staffInfo <- getInfo("staff.tumblr.com")
-
+```
