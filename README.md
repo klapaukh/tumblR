@@ -47,4 +47,10 @@ setup_tumblr_apikey("MyAPIKey")
 
 superBowlPosts <- getTagged("superbowl")
 staffInfo <- getInfo("staff.tumblr.com")
+
+all = getPosts("staff.tumblr.com")
+posts = all$posts
+corpus =  unlist(sapply(posts, function(x) x$tags))
+wordcloud(corpus,colors=brewer.pal(8, "Dark2")) 
 ```
+
