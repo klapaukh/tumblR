@@ -1,9 +1,7 @@
 # tumblR
 tumblR is an R package which provides access to the Tumblr API. 
 At the moment only the functions which look at public information are supported.
-The data (json) is given back straight. It has not yet been formatted to behave 
-like a package. That is still on the todo list. 
-
+The data (json) is given back straight. 
 
 The following functions are supported:
 
