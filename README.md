@@ -42,7 +42,7 @@ you:
 
 ## Examples
 
-```r
+```R
 source("tumblR.R")
 
 setup_tumblr_apikey("MyAPIKey")
