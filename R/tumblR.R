@@ -43,11 +43,20 @@ setup_tumblr_apikey = function(consumer_key, credentials_file=NULL){
 
 #' Set up oauth to work with tumblR
 #'
-#' This function initialised oauth assuming that \code{\link{setup_tumblr_apikey}}
-#' has been called already. 
+#' This function initialises oauth assuming that \code{\link{setup_tumblr_apikey}} 
+#' has been called already. This allows access to tumblR api calls that require 
+#' being logged into a blog. 
+#' @param consumer_secret Consumer secret provided by tumblr.
+#' @param credentials_file Optional argument of a file to save the consumer key and secret to. 
+#' @export
+#' @examples
+#' setup_tumblr_apikey("myApiKeyIsVeryLong")
+#' setup_tumblr_oauth("myConsumerSecretIsLongToo")
 setup_tumblr_oauth = function(consumer_secret,
                                credentials_file=NULL) {
-  
+  if(!exists("TUMBLR_CONSUMER_KEY",env=tumblRenv)){
+    stop("Need to call setup_tumblr_apikey before using this function")
+  } 
   app = oauth_app("tumblr", key=consumer_key)
   Sys.setenv(TUMBLR_CONSUMER_SECRET=consumer_secret)
 
@@ -69,14 +78,14 @@ setup_tumblr_oauth = function(consumer_secret,
 #' @export
 #' @examples 
 #' setup_tumblr_apikey("MyApiKey")
-#' getInfo("staff.tumblr.com")
-getInfo<- function(blog){
+#' get_info("staff.tumblr.com")
+get_info<- function(blog){
     url="info"
-    resp = doTumblrQuery(blog=blog, type=AUTH_API, url=url)
-    if(ifFailed(resp)) return(resp)
+    resp = do_tumblr_query(blog=blog, type=AUTH_API, url=url)
+    if(if_failed(resp)) return(resp)
     resp <- resp$blog
-    resp <- parseBlog(resp) 
-    makeResponse(resp) 
+    resp <- parse_blog(resp) 
+    make_response(resp) 
     return(resp)
 }
 
@@ -89,14 +98,14 @@ getInfo<- function(blog){
 #' @param size Size of the image to get (16, 24, 30, 40, 48 ,64, 96, 128, 512)
 #' @export
 #' @examples 
-#' getAvatar("staff.tumblr.com")
-#' getAvatar("staff.tumblr.com",512)
-getAvatar <- function(blog,size=64){
+#' get_avatar("staff.tumblr.com")
+#' get_avatar("staff.tumblr.com",512)
+get_avatar <- function(blog,size=64){
   if(! (size %in% c(16,24,30,40,48,64,96,128,512))){
           stop("Size must be one of 16, 24, 30, 40, 48 ,64, 96, 128, 512")
   }
   url = "avatar/size"
-  doTumblrQuery(blog=blog, url=url, type=AUTH_NONE)
+  do_tumblr_query(blog=blog, url=url, type=AUTH_NONE)
 }
 
 #' Get a blogs likes
@@ -109,15 +118,52 @@ getAvatar <- function(blog,size=64){
 #' @param limit Number of likes to return (1-20)
 #' @param Number of first liked post to start at
 #' @export 
+#' @seealso get_iterated_likes
 #' @examples
 #' setup_tumblr_apikey("MyApiKey")
-#' getLikes("stuff.tumblr.com",limit=2,offset=0)
-#' getLikes("stuff.tumblr.com",limit=2,offset=2)
-getLikes <- function(blog,limit=20,offset=0){
+#' get_likes("stuff.tumblr.com",limit=2,offset=0)
+#' get_likes("stuff.tumblr.com",limit=2,offset=2)
+get_likes <- function(blog,limit=20,offset=0){
   url="likes"
   query=list(limit=limit,offset=offset)
-  doTumblrQuery(blog=blog, url=url, query=query, type=AUTH_API)
+  do_tumblr_query(blog=blog, url=url, query=query, type=AUTH_API)
 }
+
+#' Get more than 20 likes in one call
+#'
+#' This function will repeatedly call \code{\link{get_likes}}
+#' to return any number of likes. This function requires an
+#' API key. Unlike get_likes which returns a list of liked
+#' posts and a count, this function returns the count of 
+#' total number of liked posts as the attribute liked_count.
+#'
+#' @param blog The blog url
+#' @param limit Number of likes to return (1-20)
+#' @param Number of first liked post to start at
+#' @export 
+#' @seealso get_likes
+#' @examples
+#' setup_tumblr_apikey("MyApiKey")
+#' get_iterated_likes("stuff.tumblr.com",limit=100,offset=0)
+get_iterated_likes <- function(blog, limit=20,offset=0)
+  likes = list()
+  while(length(likes) < limit){
+    toGet = min(limit - lenth(likes),20)
+    l = get_likes(blog, toGet, length(likes)+offset)
+    if(inherits(l, "tumblR.Meta")){
+      if(length(likes) == 0){
+        return(l)
+      }else{
+        return (likes)
+      }
+    }
+    limit=min(limit, l$liked_count)
+    likes = c(likes, l$liked_posts)
+    attr(likes, "liked_count") <- l$liked_count
+  }
+  return(likes)
+}
+
 
 #' Get posts posted by a blog
 #' 
@@ -136,12 +182,12 @@ getLikes <- function(blog,limit=20,offset=0){
 #' @export
 #' @examples 
 #' setup_tumblr_apikey("MyApiKey")
-#' getPosts("staff.tumblr.com", limit=20,offset=0)
-#' getPosts("staff.tumblr.com", limit=20,offset=20)
-#' getPosts("staff.tumblr.com", id=20)
-#' getPosts("staff.tumblr.com", filter="raw")
-#' getPosts("staff.tumblr.com", tag="NYFW")
-getPosts <- function(blog,type,id, tag, limit, offset,reblog_info, notes_info,filter){
+#' get_posts("staff.tumblr.com", limit=20,offset=0)
+#' get_posts("staff.tumblr.com", limit=20,offset=20)
+#' get_posts("staff.tumblr.com", id=20)
+#' get_posts("staff.tumblr.com", filter="raw")
+#' get_posts("staff.tumblr.com", tag="NYFW")
+get_posts <- function(blog,type,id, tag, limit, offset,reblog_info, notes_info,filter){
   url="posts"
         
   query=list()
@@ -154,9 +200,9 @@ getPosts <- function(blog,type,id, tag, limit, offset,reblog_info, notes_info,fi
   if(!missing(notes_info)) query = c(query,notes_info=notes_info)
   if(!missing(filter)) query = c(query,filter=filter)
 
-  response = doTumblrQuery(blog=blog, query=query, url=url, type=AUTH_API)
+  response = do_tumblr_query(blog=blog, query=query, url=url, type=AUTH_API)
   
-  if(ifFailed(response)){
+  if(if_failed(response)){
     return(response)
   }
   response$response
@@ -164,8 +210,8 @@ getPosts <- function(blog,type,id, tag, limit, offset,reblog_info, notes_info,fi
   count = response$total_posts
   posts = response$posts
 
-  response = list(total_posts=count, blog=parseBlog(blog), posts=parsePosts(posts))
-  makeResponse(response)
+  response = list(total_posts=count, blog=parse_blog(blog), posts=parse_posts(posts))
+  make_response(response)
   return(response)
 }
 
@@ -182,9 +228,9 @@ getPosts <- function(blog,type,id, tag, limit, offset,reblog_info, notes_info,fi
 #' @export
 #' @examples
 #' setup_tumblr_apikey("MyApiKey")
-#' getTagged("superbowl")
-#' getTagged("superbowl", filter="text")
-getTagged <-function(tag, before, limit, filter){
+#' get_tagged("superbowl")
+#' get_tagged("superbowl", filter="text")
+get_tagged <-function(tag, before, limit, filter){
   if(missing(tag)) stop("A tag must be supplied")
 
   query= list(tag=tag)
@@ -193,15 +239,15 @@ getTagged <-function(tag, before, limit, filter){
   if(!missing(filter)) query = c(query, filter=filter)
   if(!missing(limit)) query = c(query, limit=limit)
 
-  result = doTumblrQuery(query=query,url="tagged",type=AUTH_API)  
-  if(ifFailed(result)){
+  result = do_tumblr_query(query=query,url="tagged",type=AUTH_API)  
+  if(if_failed(result)){
     return(result)
   }
 
   return(result)
 }
 
-doTumblrQuery <- function(blog = NULL, user=NULL, query=list(), type=AUTH_NONE, url=NULL){
+do_tumblr_query <- function(blog = NULL, user=FALSE, query=list(), type=AUTH_NONE, url=NULL){
   
   if(is.null(url)){
      stop("A url must be provided")
@@ -209,7 +255,7 @@ doTumblrQuery <- function(blog = NULL, user=NULL, query=list(), type=AUTH_NONE, 
 
   if(type == AUTH_API){
     if(!exists("TUMBLR_CONSUMER_KEY",env=tumblRenv)){
-            stop("Need to call setup_tumblr_apikey before using this method")
+            stop("Need to call setup_tumblr_apikey before using this function")
     }else{
             query= c(query, api_key=get("TUMBLR_CONSUMER_KEY",env=tumblRenv))
             request = "http://"
@@ -220,7 +266,7 @@ doTumblrQuery <- function(blog = NULL, user=NULL, query=list(), type=AUTH_NONE, 
 
   request = paste(request, tumblrApiBase,sep="")
 
-  if(!is.null(user)) {
+  if(user) {
           request <- paste(request, "user/",sep="")
   }else if(!is.null(blog)){
           request <- paste(request, "blog/",blog,"/",sep="")
@@ -230,6 +276,9 @@ doTumblrQuery <- function(blog = NULL, user=NULL, query=list(), type=AUTH_NONE, 
 
   result = NULL
   if(type == AUTH_OAUTH){
+   if(!exists("sig",env=tumblRenv)){
+           stop("Need to call setup_tumblr_oauth before using this fuction")
+   }
     result = GET(url=request, query=query,sig = get("sig",env=tumblRenv)) 
   }else{
     result = GET(url=request, query=query) 
@@ -243,9 +292,9 @@ doTumblrQuery <- function(blog = NULL, user=NULL, query=list(), type=AUTH_NONE, 
   result = fromJSON(content(result,"text"),F)
   
   meta = result$meta
-  makeMeta(meta)
+  make_meta(meta)
   response = result$response
-  makeResponse(response)
+  make_response(response)
 
   if(meta$status != 200){
     return(meta)
@@ -254,27 +303,30 @@ doTumblrQuery <- function(blog = NULL, user=NULL, query=list(), type=AUTH_NONE, 
   return(response)
 }
 
-makeMeta <- function(x) {
+make_meta <- function(x) {
   class(x) <- c(class(x), "tumblR.Meta")
 }
 
-makeResponse <- function(x) {
+make_response <- function(x) {
   class(x) <- c(class(x), "tumblR.Response")
 }
 
-ifFailed <- function(x) {
+if_failed <- function(x) {
   return(inherits(x, "tumblR.Meta"))
 }
 
-parseBlog <- function(x){
-  x$updated = as.POSIXct(x$updated, origin=origin)
+parse_blog <- function(x){
+  x$updated = tumblr_to_date(x$updated)
   return(x)
 }
 
-parsePosts <- function(x){
+parse_posts <- function(x){
   return(x)
 }
 
+tubmlr_to_date <-function(x){
+  return(as.POSIXct(x,origin=origin))
+}
 #' tumblR a package for accessing tumblr
 #'
 #' The tumblR package provides commands for accessing the tumblr API
