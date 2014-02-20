@@ -150,7 +150,7 @@ get_iterated_likes <- function(blog, limit=20,offset=0){
   likes = list()
   while(length(likes) < limit){
     toGet = min(limit - length(likes),20)
-    l = get_likes(blog, toGet, length(likes)+offset)
+    l = get_likes(blog=blog, limit=toGet, offset=length(likes)+offset)
     if(if_failed(l)){
       if(length(likes) == 0){
         return(l)
@@ -235,8 +235,8 @@ get_iterated_posts <- function(...,limit=20,offset=0){
   posts = list()
   while(length(posts) < limit){
     toGet = min(limit - length(posts),20)
-    l = get_posts(blog, toGet, length(likes)+offset)
-    if(if.failed(l)){
+    l = get_posts(limit=toGet, offset=length(posts)+offset,...)
+    if(if_failed(l)){
       if(length(posts) == 0){
         return(l)
       }else{
@@ -330,8 +330,7 @@ do_tumblr_query <- function(blog = NULL, user=FALSE, query=list(), type=AUTH_NON
   }
   
   if(result$status_code != 200){
-    warning(sprintf("Something went wrong with the request (%d: %s)", result$status_code, result$headers$statusmessage))
-    return(NULL)
+    stop(sprintf("Something went wrong with the request (%d: %s)", result$status_code, result$headers$statusmessage))
   }
   
   result = fromJSON(content(result,"text"),F)
@@ -403,7 +402,7 @@ parse_posts <- function(x){
 #' 
 #' @param x A tumblr timestamp
 #' @export
-tubmlr_to_date <-function(x){
+tumblr_to_date <-function(x){
   return(as.POSIXct(x,origin=origin))
 }
 
