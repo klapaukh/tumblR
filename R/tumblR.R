@@ -131,8 +131,9 @@ get_likes <- function(blog,limit=20,offset=0){
 
 #' Get more than 20 likes in one call
 #'
-#' This function will repeatedly call \code{\link{get_likes}}
-#' to return any number of likes. This function requires an
+#' This function will return any number of likes. In doing so
+#' it may more multiple requests to the tumblr api. 
+#' This function requires an
 #' API key. Unlike get_likes which returns a list of liked
 #' posts and a count, this function returns the count of 
 #' total number of liked posts as the attribute liked_count.
@@ -145,12 +146,12 @@ get_likes <- function(blog,limit=20,offset=0){
 #' @examples
 #' setup_tumblr_apikey("MyApiKey")
 #' get_iterated_likes("stuff.tumblr.com",limit=100,offset=0)
-get_iterated_likes <- function(blog, limit=20,offset=0)
+get_iterated_likes <- function(blog, limit=20,offset=0){
   likes = list()
   while(length(likes) < limit){
     toGet = min(limit - lenth(likes),20)
     l = get_likes(blog, toGet, length(likes)+offset)
-    if(inherits(l, "tumblR.Meta")){
+    if(if_failed(l)){
       if(length(likes) == 0){
         return(l)
       }else{
@@ -169,7 +170,8 @@ get_iterated_likes <- function(blog, limit=20,offset=0)
 #' 
 #' Get the posts posted by a blog. This function requires an API key. 
 #' At most 20 posts can be returned at one time. If more posts are required
-#' the function will need to be called multiple times. 
+#' the function will need to be called multiple times, or 
+#' \code{\link{\get_iterated_posts}} can be called.
 #'
 #' @param The type of post of get [ommit to get all] (text,quote,link,answer,video,audio,photo,chat)
 #' @param id The id of the post to get [ommit if not needed]
@@ -180,6 +182,7 @@ get_iterated_likes <- function(blog, limit=20,offset=0)
 #' @param notes_info Return \code{note count} and \code{note} information [default: False] (True / False)
 #' @param filter Post format to return [ommit for HTML] (text / raw). May return Markdown if raw is selected.
 #' @export
+#' @seealso get_iterated_posts
 #' @examples 
 #' setup_tumblr_apikey("MyApiKey")
 #' get_posts("staff.tumblr.com", limit=20,offset=0)
@@ -215,6 +218,39 @@ get_posts <- function(blog,type,id, tag, limit, offset,reblog_info, notes_info,f
   return(response)
 }
 
+#' Get more than the 20 posts at once
+#' 
+#' This function may make multiple requests to the 
+#' tumblr api.
+#'
+#' @param limit The number of posts to return
+#' @param offset The first post to start at
+#' @param ... extra options to pass to get_posts
+#' @export
+#' @seealso get_posts
+#' @examples
+#' setup_tumblr_apikey("MyApiKey")
+#' get_iterated_posts("staff.tumblr.com", limit=200,offset=0)
+get_iterated_posts <- function(...,limit=20,offset=0){
+  posts = list()
+  while(length(posts) < limit){
+    toGet = min(limit - lenth(posts),20)
+    l = get_posts(blog, toGet, length(likes)+offset)
+    if(if.failed(l)){
+      if(length(posts) == 0){
+        return(l)
+      }else{
+        return (posts)
+      }
+    }
+    limit=min(limit, l$total_posts)
+    posts = c(likes, l$posts)
+    attr(posts, "total_posts") <- l$total_posts
+  }
+  return(posts)
+ 
+}
+
 #' Get posts with a specific tag
 #'
 #' Gets posts with a given tag. featured_timestamp is not supported.  
@@ -247,6 +283,15 @@ get_tagged <-function(tag, before, limit, filter){
   return(result)
 }
 
+#' Send a request to tumblr
+#' 
+#' General function for sending requests to the tumblr api. 
+#'
+#' @param blog [optional] The blog to use
+#' @param user [optional] True to make a user query
+#' @param query [optional] arguments to the url
+#' @param type Authentication type to use. One AUTH_NONE, AUTH_API, AUTH_OAUTH
+#' @param url Query path
 do_tumblr_query <- function(blog = NULL, user=FALSE, query=list(), type=AUTH_NONE, url=NULL){
   
   if(is.null(url)){
@@ -303,30 +348,65 @@ do_tumblr_query <- function(blog = NULL, user=FALSE, query=list(), type=AUTH_NON
   return(response)
 }
 
+#' Give an object the S3 class tumblR.Meta
+#' 
+#' Gives an object a class so that it can be marked
+#' as an unsucessful query
+#'
+#' @param x Object to add the class to
 make_meta <- function(x) {
   class(x) <- c(class(x), "tumblR.Meta")
 }
 
+#' Give an object the S3 class tubmlR.Response
+#'
+#' Give an object an S3 class so that it  can be
+#' marked as a successful query
+#' @param x Object to add the class too
 make_response <- function(x) {
   class(x) <- c(class(x), "tumblR.Response")
 }
 
+#' Test if an query failed
+#' 
+#' Tests if a query was unsuccessful. Assumes an S3
+#' class has been attached to tag it.
+#' 
+#' @param Response to test
 if_failed <- function(x) {
   return(inherits(x, "tumblR.Meta"))
 }
 
+#' Parse a blog entry. 
+#'
+#' Just turns the updated field into a date
+#'
+#' @param parse_blog The blog repsonse
 parse_blog <- function(x){
   x$updated = tumblr_to_date(x$updated)
   return(x)
 }
 
+#' Do something to parse the posts
+#'
+#' At the moment this function does nothing.
+#'
+#' @param Posts to parse
 parse_posts <- function(x){
   return(x)
 }
 
+#' Turn a tumblr timestamp into a POSIXct
+#'
+#' Turns a tumblr timestamp into a POSIXct for 
+#' ease of use
+#' 
+#' @param x A tumblr timestamp
+#' @export
 tubmlr_to_date <-function(x){
   return(as.POSIXct(x,origin=origin))
 }
+
 #' tumblR a package for accessing tumblr
 #'
 #' The tumblR package provides commands for accessing the tumblr API
