@@ -4,4 +4,8 @@ Description:
 Version: 0.01
 Author: Roma Klapaukh <roma@ecs.vuw.ac.nz>
 Maintainer: Roma Klapaukh <roma@ecs.vuw.ac.nz>
+Imports:
+    httr,
+    jsonlite,
+    ROAuth
 License: LGPL-3

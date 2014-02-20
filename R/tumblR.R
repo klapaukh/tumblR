@@ -1,10 +1,3 @@
-#Need libraries for doing http requests with OAuth
-library(httr)
-library(ROAuth)
-
-#Need a library for dealing with the json requests
-library(jsonlite)
-
 #Tumblr doesn't always require authentican. In fact it has 3 levels
 #none: Lets you see avatars
 #api_key: Publically viewable inforamation
