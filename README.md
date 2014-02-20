@@ -12,17 +12,19 @@ The following functions are supported:
 
 #####No Authentication
 
-  * getAvatar
+  * get_avatar
 
 #####API Key 
 
 Note that in order to call any of these functions
 setup_tumblr_apikey **must** be called first. 
 
-  * getLikes
-  * getInfo
-  * getPosts
-  * getTagged
+  * get_likes
+  * get_iterated_likes
+  * get_info
+  * get_posts
+  * get_iterated_posts
+  * get_tagged
 
 #####OAuth
 
@@ -45,10 +47,10 @@ library(wordcloud)
 
 setup_tumblr_apikey("MyAPIKey")
 
-superBowlPosts <- getTagged("superbowl")
-staffInfo <- getInfo("staff.tumblr.com")
+superBowlPosts <- get_tagged("superbowl")
+staffInfo <- get_info("staff.tumblr.com")
 
-all = getPosts("staff.tumblr.com")
+all = get_posts("staff.tumblr.com")
 posts = all$posts
 corpus =  unlist(sapply(posts, function(x) x$tags))
 wordcloud(corpus,colors=brewer.pal(8, "Dark2")) 
