@@ -149,7 +149,7 @@ get_likes <- function(blog,limit=20,offset=0){
 get_iterated_likes <- function(blog, limit=20,offset=0){
   likes = list()
   while(length(likes) < limit){
-    toGet = min(limit - lenth(likes),20)
+    toGet = min(limit - length(likes),20)
     l = get_likes(blog, toGet, length(likes)+offset)
     if(if_failed(l)){
       if(length(likes) == 0){
@@ -234,7 +234,7 @@ get_posts <- function(blog,type,id, tag, limit, offset,reblog_info, notes_info,f
 get_iterated_posts <- function(...,limit=20,offset=0){
   posts = list()
   while(length(posts) < limit){
-    toGet = min(limit - lenth(posts),20)
+    toGet = min(limit - length(posts),20)
     l = get_posts(blog, toGet, length(likes)+offset)
     if(if.failed(l)){
       if(length(posts) == 0){
