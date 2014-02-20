@@ -244,7 +244,7 @@ get_iterated_posts <- function(...,limit=20,offset=0){
       }
     }
     limit=min(limit, l$total_posts)
-    posts = c(likes, l$posts)
+    posts = c(posts, l$posts)
     attr(posts, "total_posts") <- l$total_posts
   }
   return(posts)
