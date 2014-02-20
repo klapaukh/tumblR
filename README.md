@@ -41,7 +41,7 @@ you:
 ## Examples
 
 ```R
-source("tumblR.R")
+library(tumblR)
 
 setup_tumblr_apikey("MyAPIKey")
 
@@ -54,3 +54,12 @@ corpus =  unlist(sapply(posts, function(x) x$tags))
 wordcloud(corpus,colors=brewer.pal(8, "Dark2")) 
 ```
 
+## Installation
+
+This package can be installed directly from Github using the devtools package. 
+
+```r
+library(devtools)
+
+install_github("tumblR",username="klapaukh")
+```
