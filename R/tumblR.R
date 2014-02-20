@@ -15,17 +15,22 @@ AUTH_API   = "AUTH_API"
 AUTH_OAUTH = "AUTH_OAUTH"
 
 #We require somewhere to save variables that isn't the global
-#scope. But hopefully we can just borrow the current scope
-#though if this isn't being run as a package, I guess that is the 
-#global scope
-tumblRenv <- environment()
+#scope. You cannot just use the current environment as it is locked 
+#once this is treated like a package. So we need a new environment
+#inside the global. This isn't exported and so can't be seen outside.
+tumblRenv <- new.env(parent=.GlobalEnv)
 
+#For the case of OAuth we need to tell httr where the find the
+#site
 tumblr = oauth_endpoint("request_token", "authorize", "access_token",
          base_url = "http://www.tumblr.com/oauth")
 
+#Base url where all tumblr api calls live
 tumblrApiBase = "api.tumblr.com/v2/"
 
+#The start of time
 origin="1970-01-01"
+
 #' Store your API key for use with tumblR
 #'
 #' This function stores the api key for use with Tumblr API calls that
@@ -43,6 +48,10 @@ setup_tumblr_apikey = function(consumer_key, credentials_file=NULL){
   }
 }
 
+#' Set up oauth to work with tumblR
+#'
+#' This function initialised oauth assuming that \code{\link{setup_tumblr_apikey}}
+#' has been called already. 
 setup_tumblr_oauth = function(consumer_secret,
                                credentials_file=NULL) {
   
@@ -272,3 +281,12 @@ parseBlog <- function(x){
 parsePosts <- function(x){
   return(x)
 }
+
+#' tumblR a package for accessing tumblr
+#'
+#' The tumblR package provides commands for accessing the tumblr API
+#'
+#' @import httr ROAuth jsonlite
+#' @docType package
+#' @name tumblR
+NULL
