@@ -1,0 +1,21 @@
+\name{getAvatar}
+\alias{getAvatar}
+\title{Get an blogs avatar}
+\usage{
+getAvatar(blog, size = 64)
+}
+\arguments{
+  \item{blog}{The blog url}
+
+  \item{size}{Size of the image to get (16, 24, 30, 40, 48
+  ,64, 96, 128, 512)}
+}
+\description{
+Get the avatar of a blog in a range of sizes. The allowed
+sizes are 16, 24, 30, 40, 48 ,64, 96, 128, 512.
+}
+\examples{
+getAvatar("staff.tumblr.com")
+getAvatar("staff.tumblr.com",512)
+}
+

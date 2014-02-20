@@ -1,0 +1,6 @@
+export(getAvatar)
+export(getInfo)
+export(getLikes)
+export(getPosts)
+export(getTagged)
+export(setup_tumblr_apikey)
