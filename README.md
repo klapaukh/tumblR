@@ -25,6 +25,7 @@ setup_tumblr_apikey **must** be called first.
   * get_posts
   * get_iterated_posts
   * get_tagged
+  * get_iterated_tagged
 
 #####OAuth
 

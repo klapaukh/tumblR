@@ -283,6 +283,42 @@ get_tagged <-function(tag, before, limit, filter){
   return(result)
 }
 
+#' Get more than the limilt for tagged posts
+#'
+#' Get more than 20 posts with a specific tag in one call.
+#' May make multiple requests to the api.
+#'
+#' @param tag The tag to search for
+#' @param before Latest post to show [default: now] 
+#' @param limit Maximum number of results
+#' @param filter Post format to return [ommit for HTML] (text / raw). May return Markdown if raw is selected. 
+#' @export
+#' @examples
+#' setup_tumblr_apikey("MyApiKey")
+#' get_iterated_tagged("superbowl", limit=100)
+get_iterated_tagged <- function(tag, before, limit, filter){
+  
+  tagged = list()
+  while(length(tagged) < limit){
+    toGet = min(limit - length(tagged),20)
+    l = get_tagged(tag=tag, before=before, limit=toGet, filter=filter)
+    if(if_failed(l)){
+      if(length(tagged) == 0){
+        return(l)
+      }else{
+        return (tagged)
+      }
+    }
+    if(length(l) == 0){
+            return(tagged)
+    }
+    tagged = c(tagged, l)
+    before = tail(l,n=1)[[1]]$timestamp
+  }
+
+  return (tagged)
+}
+
 #' Send a request to tumblr
 #' 
 #' General function for sending requests to the tumblr api. 
