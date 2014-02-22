@@ -319,6 +319,286 @@ get_iterated_tagged <- function(tag, before, limit, filter){
   return (tagged)
 }
 
+#' Get the followers of a blog.
+#' 
+#' Get the followers of a blog. Only a maximum of 
+#' 20 followers can be returned in a single call.
+#' This requires OAuth and seems to only word for 
+#' the blog the OAuth is for.
+#'
+#' @param blog The blog to get followers for
+#' @param limit Number of followers to get (1-20)
+#' @param offset Number of followers to skip from the start
+#' @export
+#' @seealso get_iterated_followers
+#' @examples
+#' setup_tumblr_apikey(myApiKey)
+#' setup_tumblr_oauth(myConsumerSecret)
+#' get_followers(myBlog)
+get_followers <- function(blog, limit=20,offset=0){
+  query=list(limit=limit, offset = offset)
+  url = "followers"
+  r = do_tumblr_query(blog=blog, query=query, type=AUTH_OAUTH, url =url)
+  if(if_failed(r)){
+    return(r)
+  }
+  return(r)
+}
+
+#' Get the followers of a blog
+#'
+#' Get the followers of a blog, but without an upper limit on
+#' the number of followers that can be retrieved. This may
+#' result in multiple calls to the tumblr API. This requires
+#' OAuth and seems to only work for the authenticated blog. 
+#' The total number of followers for blog is not returned
+#' in the list but rather as the "total_users" attribute on
+#' the list. 
+#' 
+#' @param blog The blog to get followers for.
+#' @param limit Number of followers to get
+#' @param offset Number of followers to skip from the start
+#' @export
+#' @seealso get_followers
+#' @examples
+#' setup_tumblr_apikey(myApiKey)
+#' setup_tumblr_oauth(myConsumerSecret)
+#' get_iterated_followers(myBlog,limit=100)
+get_iterated_followers <- function(blog, limit=20, offset=0){
+  followers = list()
+  while(length(followers) < limit){
+    toGet = min(limit - length(followers),20)
+    l = get_followers(limit=toGet, offset=length(followers)+offset)
+    if(if_failed(l)){
+      if(length(followers) == 0){
+        return(l)
+      }else{
+        return (followers)
+      }
+    }
+    limit=min(limit, l$total_users)
+    followers = c(followers, l$users)
+    attr(followers, "total_users") <- l$total_users
+  }
+  return(posts)
+ 
+}
+
+#' Get your queued posts
+#'
+#' Get the OAuthed user's queued posts. Returns a 
+#' maximum of 20 posts. Require OAuth. 
+#'
+#' @param blog Blog to get queued posts for
+#' @param limit Number of posts to return (1-20)
+#' @param offset Post to start at 
+#' @param filter Format to return posts in. Default is HTML. 
+#'        alternatives are "text" and "raw"
+#' @export
+get_queued_posts <- function(blog,limit=20, offset=0, filter){
+  url = "posts/queue"
+  query = list(offset=offset,limit=limit)
+  if(!missing(filter)) query= c(query, filter=filter)
+  r = do_tumblr_query(blog, query = query, url=url, type=AUTH_OAUTH)
+  if(if_failed(r)) return(r)
+  return (r)
+}
+
+#' Get draft posts
+#'
+#' Get draft posts for a user. This function requires OAuth.
+#'
+#' @param blog Blog to get draft posts for
+#' @param before_id Post id to start at
+#' @param filter Format to return posts. Ommit for HTML. 
+#'        Alternatives are "text" and "raw"
+#' @export
+get_draft_posts <- function(blog,before_id, filter){
+  url ="posts/draft"
+  query = list()
+  if(!missing(before_id)) query = c(query, before_id= before_id)
+  if(!missing(filter)) query = c(query, filter=filter)
+  r = do_tumblr_query(blog=blog, query=query, url=url, type=AUTH_OAUTH)
+  return(r)
+}
+
+#' Get submission posts
+#'
+#' Get submission posts. Requires OAuth
+#'
+#' @param blog Blog to get submission posts for
+#' @param offset Post to start from
+#' @param filter Format to return results in. Omit for HTML. 
+#'        Alternatives are "text" and "raw"
+#' @export
+get_submission_posts <- function(blog, offset, filter){
+  url ="posts/submission"
+  query = list()
+  if(!missing(offset)) query = c(query, offset = offset)
+  if(!missing(filter)) query = c(query, filter=filter)
+  r = do_tumblr_query(blog=blog, query=query, url=url, type=AUTH_OAUTH)
+  return(r)
+}
+
+#' Get user info
+#'
+#' Get info for a user. Requires OAuth
+#'
+#' @export
+get_user_info <- function(){
+  url="info"
+  r = do_tumblr_query(user=T, url=url, type=AUTH_OAUTH)
+  return(r)
+}
+
+#' Get user's dashboard
+#' 
+#' Get a user's dashboard. Requires OAuth.
+#'
+#' @param limit Number of posts to return (1-20)
+#' @param offset Post to start at 
+#' @param type Type of posts to return (omit for all) (text, photo, 
+#'        quote, link, chat, audio, video, answer"
+#' @param since_id Return posts after this id (used for pagination)
+#' @param reblog_info Return reblog information
+#' @param notes_info Return notes information
+#' @export
+get_user_dashboard <- function(limit, offset, type, since_id, reblog_info, notes_info){
+  url="dashboard"
+  query= list()
+  if(!missing(limit)) query = c(query,limit=limit) 
+  if(!missing(offset)) query = c(query, offset=offset)
+  if(!missing(type)) query = c(query, type=type)
+  if(!missing(since_id)) query = c(query, since_id=since_id)
+  if(!missing(reblog_info)) query = c(query, reblog_info=reblog_info)
+  if(!missing(notes_info)) query = c(query,  notes_info=notes_info)
+
+  r = do_tumblr_query(user=T, url=url, query=query, type=AUTH_OAUTH)
+  if(if_failed(r)) return(r)
+  return(r$posts)
+}
+
+#' Get a users dashboard
+#'
+#' Get a users dashboard for any number of posts. Requires OAuth.
+#' May make multiple API requests. Extra parameters passed to 
+#' \code{\link{get_user_dashboard}}.
+#' 
+#' @param limit Number of posts to be
+#' @param offset Post to start at
+#' @export 
+#' @seealso get_user_dashboard
+get_iterated_user_dashboard <- function(...,limit=20,offset=0){
+  posts = list()
+  since_id = 0
+  while(length(posts) < limit){
+    toGet = min(limit - length(posts),20)
+    l = get_user_dashboard(limit=toGet, offset=offset, since_id=since_id,...)
+    if(if_failed(l)){
+      if(length(posts) == 0){
+        return(l)
+      }else{
+        return (posts)
+      }
+    }
+    posts = c(posts, l)
+    since_id = tail(l,n=1)[[1]]$id
+  }
+  return(posts)
+ 
+}
+
+#' Get a user's likes
+#' 
+#' Get a user's likes
+#'
+#' @param limit Number of posts to return (1-20)
+#' @param offset Post to start at
+#' @export
+#' @seealso get_iterated_user_likes
+get_user_likes <- function(limit=20, offset=0){
+  url = "likes"
+  query= list(limit=limit,offset=offset)
+  r = do_tumblr_query(user=T, query=query, url=url, type=AUTH_OAUTH)
+  return (r)
+}
+
+#' Get more than 20 likes in one call
+#'
+#' This function will return any number of likes. In doing so
+#' it may more multiple requests to the tumblr api. 
+#' This function requires OAuth.
+#' Unlike get_user_likes which returns a list of liked
+#' posts and a count, this function returns the count of 
+#' total number of liked posts as the attribute liked_count.
+#'
+#' @param limit Number of likes to return (1-20)
+#' @param Number of first liked post to start at
+#' @export 
+#' @seealso get_user_likes
+get_iterated_user_likes <- function(limit=20,offset=0){
+  likes = list()
+  while(length(likes) < limit){
+    toGet = min(limit - length(likes),20)
+    l = get_user_likes(limit=toGet, offset=length(likes)+offset)
+    if(if_failed(l)){
+      if(length(likes) == 0){
+        return(l)
+      }else{
+        return (likes)
+      }
+    }
+    limit=min(limit, l$liked_count)
+    likes = c(likes, l$liked_posts)
+    attr(likes, "liked_count") <- l$liked_count
+  }
+  return(likes)
+}
+
+#' Get the blogs a user is following
+#'
+#' Get up to 20 of the blogs a user is following.
+#'
+#' @param limit Number of blogs to return (1-20)
+#' @param offset Blog to start at
+#' @export
+#' @seealso get_iterated_user_following
+get_user_following <- function(limit=20,offset=0){
+  url="following"
+  query=list(limit=limit, offset=offset)
+  r = do_tumblr_query(user=T,query=query,url=url,type=AUTH_OAUTH)
+  return(r)
+}
+
+#' Get blogs a user is following
+#' 
+#' Get the blogs a user if following. No limit on the
+#' number of blogs you can request. Requires OAuth. May
+#' make multiple requests to the API
+#'
+#' @param limit Number of posts to return
+#' @param offset Blog to start at
+#' @export
+#' @seealso get_user_following
+get_iterated_user_following <- function(limit=20,offset=0){
+  following = list()
+  while(length(following) < limit){
+    toGet = min(limit - length(following),20)
+    l = get_user_following(limit=toGet, offset=length(following)+offset)
+    if(if_failed(l)){
+      if(length(following) == 0){
+        return(l)
+      }else{
+        return (following)
+      }
+    }
+    limit=min(limit, l$total_blogs)
+    following = c(following, l$blogs)
+    attr(following, "liked_count") <- l$total_blogs
+  }
+  return(following)
+}
+
 #' Send a request to tumblr
 #' 
 #' General function for sending requests to the tumblr api. 

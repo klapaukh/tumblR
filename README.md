@@ -1,6 +1,6 @@
 # tumblR
 tumblR is an R package which provides access to the Tumblr API. 
-At the moment only the functions which look at public information are supported.
+At the moment only API calls which get information are supported.
 
 The following functions are supported:
 
@@ -28,7 +28,23 @@ setup_tumblr_apikey **must** be called first.
   * get_iterated_tagged
 
 #####OAuth
+  
+Note that in order to call these methods both setup_tumblr_apikey
+and setup_tumblr_oauth **must** be called first. 
 
+  * get_followers
+  * get_iterated_followers
+  * get_queued_posts
+  * get_draft_posts
+  * get_submission_posts
+  * get_user_info
+  * get_user_dashboard
+  * get_iterated_user_dashboard
+  * get_user_likes
+  * get_iterated_user_likes
+  * get_user_following
+  * get_iterated_user_following
+  
 
 ## Authentication
 
